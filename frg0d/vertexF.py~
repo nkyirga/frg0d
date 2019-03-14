@@ -1,0 +1,279 @@
+import numpy as np
+import auxFunctions as auxF
+import interpP1F as iPP
+import time
+
+class vertexR:
+    def __init__(self,wB,NW,beTa,UnF):
+        self.wB=wB
+        self.beTa=beTa
+        self.NLmax=10
+        self.NW=NW
+
+        UnPP = np.zeros((len(self.wB),NW,NW),dtype=np.complex_)
+        UnPH = np.zeros((len(self.wB),NW,NW),dtype=np.complex_)
+        UnPHE = np.zeros((len(self.wB),NW,NW),dtype=np.complex_)
+        
+        self.UnPP = UnPP
+        self.UnPH = UnPH
+        self.UnPHE = UnPHE
+
+        self.uF=UnF
+        wMidI=np.append(-wB[:0:-1],wB)
+        self.wMidI=wMidI
+        zFX,b=auxF.gaussianInt([-1,1],20)
+        zFX=np.unique(np.append(auxF.forMap(wMidI,1.0),zFX))
+        self.zFX,self.zFG=auxF.gaussianInt(zFX,4)
+        
+        self.UnPPO,self.UnPHO,self.UnPHEO=self.initializeVertex()
+        self.projectionW()        
+        
+    def initializeVertex(self):
+        wB,NW,beTa=self.wB,self.NW,self.beTa
+        NLmax=self.NLmax
+        zFX,zFG=auxF.gaussianInt([-1,1],30)
+
+        UnPPO=np.zeros((len(wB),NW,NW),dtype=np.complex_)
+        UnPHO=np.zeros((len(wB),NW,NW),dtype=np.complex_)
+        UnPHEO=np.zeros((len(wB),NW,NW),dtype=np.complex_)
+
+        wFX=auxF.backMap(zFX,1.0)
+        wP1=np.tile(wFX[:,np.newaxis],(1,len(wFX)))
+        wP2=np.tile(wFX[np.newaxis,:],(len(wFX),1))
+        zP1=np.tile(zFX[:,np.newaxis],(1,len(zFX)))
+        zP2=np.tile(zFX[np.newaxis,:],(len(zFX),1))
+        zPG=np.tile(zFG[:,np.newaxis],(1,len(zFX)))
+        zPG=zPG*np.tile(zFG[np.newaxis,:],(len(zFX),1))
+
+        for i in range(len(wB)):
+            wS=np.zeros((len(wFX),len(wFX)))+wB[i]
+            
+            wPH=wP1-wP2
+            wPHE=wS-wP1-wP2
+            uPP=self.uF(wS,wPH,wPHE)
+
+            wPP=wP1+wP2-wS
+            wPHE=wP2-wP1
+            uPH=self.uF(wPP,wS,wPHE)
+
+            wPP=wP1+wP2+wS
+            wPH=wP1-wP2
+            uPHE=self.uF(wPP,wPH,wS)
+
+            for j in range(NW):
+                lTemp1=auxF.freqExpansion(zP1,2*j)
+                for k in range(NW):
+                    lTemp2=auxF.freqExpansion(zP2,2*k)
+                    UnPPO[i,j,k]=np.sum(zPG*uPP*lTemp1*lTemp2)
+                    UnPHO[i,j,k]=np.sum(zPG*uPH*lTemp1*lTemp2)
+                    UnPHEO[i,j,k]=np.sum(zPG*uPHE*lTemp1*lTemp2)
+        print UnPPO[0,:,:]
+        
+        return UnPPO,UnPHO,UnPHEO       
+
+    def projectionW(self):
+        NW=self.NW
+        NLmax=self.NLmax
+        wB=self.wB
+        zFX,zFG=auxF.gaussianInt([-1,1],30)
+        cScale=1.0
+
+        scaleDerv=np.zeros((NW,NW,NW,NW))
+        for i in range(NW):
+            for j in range(NW):
+                scaleTemp1=np.zeros((NW,NW))
+                scaleTemp2=np.zeros((NW,NW))
+                for k in range(1,NW):
+                    intG=(zFX**2)*auxF.freqExpansion(zFX,2*k)-zFX*auxF.freqExpansion(zFX,2*k-1)
+                    scaleTemp1[k,j]=2*k*np.sum(zFG*intG*auxF.freqExpansion(zFX,2*i))
+
+                    intG=(zFX**2)*auxF.freqExpansion(zFX,2*k)-zFX*auxF.freqExpansion(zFX,2*k-1)
+                    scaleTemp2[i,k]=2*k*np.sum(zFG*intG*auxF.freqExpansion(zFX,2*j))
+                scaleDerv[:,:,i,j]=0*(scaleTemp1+scaleTemp2)
+        self.scaleDerv=scaleDerv
+
+        wTransPHtoPP=np.zeros((NLmax,NW,NW,len(wB),NW,NW))
+        wTransPHEtoPP=np.zeros((NLmax,NW,NW,len(wB),NW,NW))
+        wTransPPtoPH=np.zeros((NLmax,NW,NW,len(wB),NW,NW))
+        wTransPHEtoPH=np.zeros((NLmax,NW,NW,len(wB),NW,NW))
+        wTransPPtoPHE=np.zeros((NLmax,NW,NW,len(wB),NW,NW))
+        wTransPHtoPHE=np.zeros((NLmax,NW,NW,len(wB),NW,NW))
+
+        wFX=auxF.backMap(zFX,cScale)
+        wP1=np.tile(wFX[:,np.newaxis,np.newaxis],(1,len(wFX),len(wB)))
+        wP2=np.tile(wFX[np.newaxis,:,np.newaxis],(len(zFX),1,len(wB)))
+        wBE=np.tile(wB[np.newaxis,np.newaxis,:],(len(zFX),len(zFX),1))
+
+        wFXE=np.tile(wFX[:,np.newaxis],(1,len(wB)))
+        wBEe=np.tile(wB[np.newaxis,:],(len(zFX),1))
+
+        zP1=np.tile(zFX[:,np.newaxis,np.newaxis],(1,len(zFX),len(wB)))
+        zP2=np.tile(zFX[np.newaxis,:,np.newaxis],(len(zFX),1,len(wB)))
+        zPE=np.tile(zFG[:,np.newaxis,np.newaxis],(1,len(zFX),len(wB)))
+        zPE=zPE*np.tile(zFG[np.newaxis,:,np.newaxis],(len(zFX),1,len(wB)))
+
+        lTempXtoY1=np.zeros((len(zFX),len(zFX),len(wB),NLmax))
+        lTempXtoY2=np.zeros((len(zFX),len(zFX),len(wB),NLmax))
+
+        for i in range(NLmax):
+            zT=auxF.forMap(0.5*(wP1+wP2),cScale)
+            lTempXtoY1[...,i]=zPE*auxF.freqExpansion(zT,2*i)
+
+            zT=auxF.forMap(0.5*(wP2-wP1),cScale)
+            lTempXtoY2[...,i]=zPE*auxF.freqExpansion(zT,2*i)
+
+        lTempP1=np.zeros((len(zFX),len(zFX),len(wB),NW))
+        lTempP2=np.zeros((len(zFX),len(zFX),len(wB),NW))
+        lTempP3=np.zeros((len(zFX),len(zFX),len(wB),NW))
+        lTempP4=np.zeros((len(zFX),len(zFX),len(wB),NW))
+
+        lTempW1=np.zeros((len(zFX),len(zFX),len(wB),NW))
+        lTempWn=np.zeros((len(zFX),len(wB),NW))
+
+        for i in range(NW):
+            zT=auxF.forMap(wBE-0.5*(wP2-wP1),cScale)
+            lTempP1[...,i]=auxF.freqExpansion(zT,2*i)
+
+            zT=auxF.forMap(wBE+0.5*(wP2-wP1),cScale)
+            lTempP2[...,i]=auxF.freqExpansion(zT,2*i)
+
+            zT=auxF.forMap(wBE-0.5*(wP1+wP2),cScale)
+            lTempP3[...,i]=auxF.freqExpansion(zT,2*i)
+
+            zT=auxF.forMap(wBE+0.5*(wP1+wP2),cScale)
+            lTempP4[...,i]=auxF.freqExpansion(zT,2*i)
+
+            lTempW1[...,i]=auxF.freqExpansion(zP1,2*i)
+            lTempWn[...,i]=auxF.freqExpansion(auxF.forMap(wFXE,cScale),2*i)
+        
+        wTemp1=np.zeros((len(zFX),NW,NW,len(wB),NW))
+        wTemp2=np.zeros((len(zFX),NW,NW,len(wB),NW))
+        for i in range(NLmax):
+            for j in range(NW):
+                for k in range(NW):
+                    for l in range(NW):
+                        wTemp1[:,j,k,:,l]=np.sum(lTempXtoY1[...,i]*lTempP1[...,j]*lTempP2[...,k]*lTempW1[...,l],axis=0)
+                        wTemp2[:,j,k,:,l]=np.sum(lTempXtoY2[...,i]*lTempP3[...,j]*lTempP4[...,k]*lTempW1[...,l],axis=0)
+                    
+            for j in range(NW):
+                intG=lTempWn[...,j]
+                intG=np.tile(intG[:,np.newaxis,np.newaxis,:,np.newaxis],(1,NW,NW,1,NW))
+                wTransPHtoPP[i,:,:,:,:,j]=np.sum(intG*wTemp1,axis=0)
+                wTransPHEtoPP[i,:,:,:,:,j]=np.sum(intG*wTemp2,axis=0)
+        wTransPPtoPH=wTransPHtoPP[:]
+        for j in range(NW):
+            wTransPHEtoPH[:,j,:,:,:,:]=wTransPHEtoPP[:,j,:,:,:,:]
+            wTransPPtoPHE[:,j,:,:,:,:]=wTransPHtoPP[:,j,:,:,:,:]
+            wTransPHtoPHE[:,j,:,:,:,:]=wTransPHEtoPP[:,j,:,:,:,:]
+
+        self.wTransPHtoPP=wTransPHtoPP
+        self.wTransPHEtoPP=wTransPHEtoPP
+        self.wTransPPtoPH=wTransPPtoPH
+        self.wTransPHEtoPH=wTransPHEtoPH
+        self.wTransPPtoPHE=wTransPPtoPHE
+        self.wTransPHtoPHE=wTransPHtoPHE
+
+    def legndExpand(self,UnX,AC):
+        wB=self.wB
+        beTa=self.beTa
+        NW=self.NW
+        NLmax=self.NLmax
+        zFX,zFG=self.zFX,self.zFG
+        wMidI=self.wMidI
+        cScale=1.0
+        
+        UnXi=np.swapaxes(UnX,1,2)
+        UnXi=np.concatenate((np.conj(UnXi[:0:-1,:,:]),UnX),axis=0)
+        
+        UnXiF=auxF.linInterp(wMidI,UnXi,auxF.backMap(zFX,cScale)*np.sqrt(AC**2+1))
+        UnL=np.zeros((NLmax,NW,NW),dtype=np.complex_)
+        
+        zFXE=np.tile(zFX[:,np.newaxis,np.newaxis],(1,NW,NW))
+        zFGE=np.tile(zFG[:,np.newaxis,np.newaxis],(1,NW,NW))
+        for i in range(NLmax):
+            UnL[i,:,:]=np.sum(zFGE*auxF.freqExpansion(zFXE,2*i)*UnXiF,axis=0)
+
+        return UnL
+    def uEvaluate(self,wPP,wPH,wPHE,AC):
+        uShape=wPP.shape
+
+        wPP=np.reshape(wPP,wPP.size)
+        wPH=np.reshape(wPH,wPH.size)
+        wPHE=np.reshape(wPHE,wPHE.size)
+        
+
+        uPP=self._expandChannel(wPP,wPH-wPHE,wPH+wPHE,AC,'PP')
+        uPH=self._expandChannel(wPH,wPP-wPHE,wPP+wPHE,AC,'PH')
+        uPHE=self._expandChannel(wPHE,wPP-wPH,wPP+wPH,AC,'PHE')
+        
+        u0=self.uF(wPP,wPH,wPHE)
+        UnV=u0+uPP+uPH+uPHE
+        
+        return np.reshape(UnV,uShape)
+
+    def _expandChannel(self,wS,wSX,wSY,AC,chnL):
+        if chnL is 'PP':
+            UnX = self.UnPP
+        elif chnL is 'PH':
+            UnX = self.UnPH  
+        elif chnL is 'PHE':
+            UnX = self.UnPHE
+        
+        beTa=self.beTa
+        NW=self.NW
+        wB=self.wB
+        NLmax=self.NLmax
+        nPoints=len(wS)
+        
+        wMidI=self.wMidI
+
+        UnXi=np.swapaxes(UnX,1,2)
+        UnXi=np.concatenate((np.conj(UnX[:0:-1,:,:]),UnX),axis=0)
+        UnXiF=auxF.linInterp(wMidI,UnXi,wS)
+        
+        zSX=auxF.forMap(wSX/np.sqrt(AC**2+1),1.0)
+        zSY=auxF.forMap(wSY/np.sqrt(AC**2+1),1.0)
+        
+        lTempXN=np.zeros((nPoints,1,NW))
+        lTempYN=np.zeros((nPoints,NW,1))
+        for i in range(NW):
+            lTempXN[:,0,i]=auxF.freqExpansion(zSX,2*i)
+            lTempYN[:,i,0]=auxF.freqExpansion(zSY,2*i)
+
+        UnE=np.zeros(len(wS),dtype=np.complex_)
+        UnE=np.squeeze(np.matmul(lTempXN,np.matmul(UnXiF,lTempYN)))
+
+        return UnE
+    def projectChannel(self,UnL,AC,chnL):
+        if chnL is 'PP':
+           wTrans1=self.wTransPPtoPH
+           wTrans2=self.wTransPPtoPHE
+           
+        elif chnL is 'PH':
+           wTrans1=self.wTransPHtoPP
+           wTrans2=self.wTransPHtoPHE
+
+        elif chnL is 'PHE':
+           wTrans1=self.wTransPHEtoPP
+           wTrans2=self.wTransPHEtoPH
+
+        NW=self.NW
+        wB=self.wB
+        NLmax=self.NLmax
+
+        UnLE=np.tile(UnL[:,:,:,np.newaxis,np.newaxis,np.newaxis],(1,1,1,len(wB),NW,NW))
+        UnR1=np.sum(UnLE*wTrans1,axis=(0,1,2))
+        UnR1=auxF.linInterp(np.sqrt(AC**2+1)*wB,UnR1,wB)
+        
+        UnR2=np.sum(UnLE*wTrans2,axis=(0,1,2))
+        UnR2=auxF.linInterp(np.sqrt(AC**2+1)*wB,UnR2,wB)
+        
+        return UnR1,UnR2
+
+                
+                
+                
+        
+
+        
+        
