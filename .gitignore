@@ -13,3 +13,6 @@
 
 # Temp files
 *~
+
+# Data files
+*.npz

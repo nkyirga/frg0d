@@ -1,6 +1,5 @@
 import numpy as np
 import auxFunctions as auxF
-import interpP1F as intPP
 
 class scaleProp:
     def __init__(self,maxW,freeG,beTa,Mu,cutoff='litim'):

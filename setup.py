@@ -10,4 +10,7 @@ setup(name='frg0d',
         'numpy',
         'cython',
       ],
+      entry_points={
+        'console_scripts': ['frgSolve=frg0d.frg0d:main'],
+      },
       zip_safe=False)

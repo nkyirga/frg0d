@@ -1,6 +1,5 @@
 import numpy as np
 import auxFunctions as auxF
-import interpP1F as iPP
 import time
 
 class vertexR:
