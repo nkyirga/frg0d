@@ -6,4 +6,8 @@ setup(name='frg0d',
       author='Nahom Yirga',
       author_email='nkyirga@bu.edu',
       packages=['frg0d'],
+      install_requires=[
+        'numpy',
+        'cython',
+      ],
       zip_safe=False)
