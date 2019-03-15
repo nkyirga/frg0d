@@ -1,6 +1,5 @@
 import numpy as np
 import auxFunctions as auxF
-import time
 
 class vertexR:
     def __init__(self,wB,NW,beTa,UnF):
