@@ -1,4 +1,5 @@
 import copy
+import time
 import numpy as np
 import auxFunctions as auxF
 from vertexF import vertexR
@@ -163,10 +164,11 @@ class fRG0D:
     def adaptiveRGFlow(self,lMax):
         while self.l<lMax or self.step<(self.step/10): 
             sE,UnPP,UnPH,UnPHE,eRR=self.advanceRKF()
+            auxF.printBar(np.round(self.step,2),self.l/lMax)
+
             absERR=0.01
             
             stepN=self.step*(absERR/eRR)**0.2
-            print(self.l,self.step,eRR)
             if stepN>=self.step:
                 self.l+=self.step
                 self.propG.sE=sE

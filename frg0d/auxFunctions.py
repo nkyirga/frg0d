@@ -2,8 +2,18 @@ import numpy as np
 from vertexF import vertexR
 from propG import scaleProp
 from math import factorial
-import time
+import sys
 
+def printBar(steP,current):
+    width=20
+    per=int(current*100)
+    curWidth=int(current*width)
+    remWidth=width-curWidth
+    sys.stdout.write('Step: '+str(steP)+\
+                         ' [%s]'%('#'*curWidth+ ' '*remWidth)+\
+                         str(per)+'%\r')
+    sys.stdout.flush()
+    
 def calcScale(xV,yV,cScaleS):
     
     diff=cScaleS
