@@ -15,6 +15,9 @@ def frgRun(args):
         gLoc[i]=(1.0/(2*np.pi))*np.trapz(gKint,kX)
        
     hFI=1j*wF-1/gLoc
+    from matplotlib import pyplot as plt
+    plt.plot(wF,hFI.imag,'o-')
+    plt.show()
     def hF(wM):
         hFr=np.interp(wM,wF,hFI.real)
         hFi=np.interp(wM,wF,hFI.imag)
