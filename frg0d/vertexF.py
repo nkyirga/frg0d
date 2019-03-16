@@ -242,6 +242,40 @@ class vertexR:
         UnE=np.squeeze(np.matmul(lTempXN,np.matmul(UnXiF,lTempYN)))
 
         return UnE
+
+    def vertExpand(self,UnX,wS,wSX,wSY,AC):
+        beTa=self.beTa
+        NW=self.NW
+        wB=self.wB
+        NLmax=self.NLmax
+        
+        wMidI=self.wMidI
+
+        uShape=wS.shape
+        wS=np.reshape(wS,wS.size)
+        wSX=np.reshape(wSX,wSX.size)
+        wSY=np.reshape(wSY,wSY.size)
+        nPoints=len(wS)
+        
+        UnXi=np.swapaxes(UnX,1,2)
+        UnXi=np.concatenate((np.conj(UnX[:0:-1,:,:]),UnX),axis=0)
+
+        UnXiF=auxF.linInterp(wMidI,UnXi,wS)
+        
+        zSX=auxF.forMap(wSX/np.sqrt(AC**2+1),1.0)
+        zSY=auxF.forMap(wSY/np.sqrt(AC**2+1),1.0)
+        
+        lTempXN=np.zeros((nPoints,1,NW))
+        lTempYN=np.zeros((nPoints,NW,1))
+        for i in range(NW):
+            lTempXN[:,0,i]=auxF.freqExpansion(zSX,2*i)
+            lTempYN[:,i,0]=auxF.freqExpansion(zSY,2*i)
+
+        UnE=np.zeros(len(wS),dtype=np.complex_)
+        UnE=np.squeeze(np.matmul(lTempXN,np.matmul(UnXiF,lTempYN)))
+
+        return np.reshape(UnE,uShape)
+
     def projectChannel(self,UnL,AC,chnL):
         if chnL is 'PP':
            wTrans1=self.wTransPPtoPH
@@ -259,11 +293,10 @@ class vertexR:
         wB=self.wB
         NLmax=self.NLmax
 
-        UnLE=np.tile(UnL[:,:,:,np.newaxis,np.newaxis,np.newaxis],(1,1,1,len(wB),NW,NW))
-        UnR1=np.sum(UnLE*wTrans1,axis=(0,1,2))
+        UnR1=np.sum(UnL[:,:,:,None,None,None]*wTrans1,axis=(0,1,2))
         UnR1=auxF.linInterp(np.sqrt(AC**2+1)*wB,UnR1,wB)
         
-        UnR2=np.sum(UnLE*wTrans2,axis=(0,1,2))
+        UnR2=np.sum(UnL[:,:,:,None,None,None]*wTrans2,axis=(0,1,2))
         UnR2=auxF.linInterp(np.sqrt(AC**2+1)*wB,UnR2,wB)
         
         return UnR1,UnR2

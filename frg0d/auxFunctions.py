@@ -279,17 +279,17 @@ def betaF2L(UnF,propT,AC,nL):
     uPHtoPP,uPHtoPHE=UnF.projectChannel(UnF.UnPHI,AC,'PH')
     uPHEtoPP,uPHEtoPH=UnF.projectChannel(UnF.UnPHEI,AC,'PHE')
 
-    dSE=calcSE(UnF,propT,AC)
-    mixPP, mixPH=propT.xBubbles(UnF.wB,dSE,AC,UnF.NW)
-
+    gPP, gPH=propT.gBubbles(UnF.wB,AC,UnF.NW)
     UnPPX=UnF.UnPPO+UnF.UnPP+uPHtoPP+uPHEtoPP
     UnPHX=UnF.UnPHO+UnF.UnPH+uPPtoPH+uPHEtoPH
     UnPHEX=UnF.UnPHEO+UnF.UnPHE+uPPtoPHE+uPHtoPHE
 
+    dSE=calcSE(UnF,propT,AC)
+    mixPP, mixPH=propT.xBubbles(UnF.wB,dSE,AC,UnF.NW) 
+    
     dUnPP=-np.matmul(UnPPX,np.matmul(mixPP,UnPPX))
     dUnPH=np.matmul(UnPHX-UnPHEX,np.matmul(mixPH,UnPHX))+\
         np.matmul(UnPHX,np.matmul(mixPH,UnPHX-UnPHEX))
-    
     dUnPHE=-np.matmul(UnPHEX,np.matmul(mixPH,UnPHEX))
     
     dUnPPI=UnF.legndExpand(dUnPP,AC)
@@ -302,10 +302,8 @@ def betaF2L(UnF,propT,AC,nL):
    
     dUnPPX=uPHtoPP2+uPHEtoPP2
     dUnPHX=uPPtoPH2+uPHEtoPH2
-    dUnPHEX=uPPtoPHE2+uPHtoPHE2
+    dUnPHEX=uPPtoPHE2+uPHtoPHE2  
     
-    gPP, gPH=propT.gBubbles(UnF.wB,AC,UnF.NW)
-  
     scaleD=UnF.scaleDerv
     scaleF=np.tile(scaleD[np.newaxis,:,:,:,:],(len(UnF.wB),1,1,1,1,))
     UnPPs=np.tile(UnF.UnPP[:,:,:,np.newaxis,np.newaxis],(1,1,1,UnF.NW,UnF.NW))
@@ -337,7 +335,8 @@ def betaFNL(UnF,propT,AC,nL):
     uPHtoPP,uPHtoPHE=UnF.projectChannel(UnF.UnPHI,AC,'PH')
     uPHEtoPP,uPHEtoPH=UnF.projectChannel(UnF.UnPHEI,AC,'PHE')
 
-    dSE=calcSE(UnF,propT,AC)
+    #dSE=calcSE(UnF,propT,AC)
+    dSE=np.zeros(len(propT.wF),dtype=np.complex_)
     mixPP, mixPH=propT.xBubbles(UnF.wB,dSE,AC,UnF.NW)
     gPP, gPH=propT.gBubbles(UnF.wB,AC,UnF.NW)
   
@@ -348,7 +347,6 @@ def betaFNL(UnF,propT,AC,nL):
     dUnPP=-np.matmul(UnPPX,np.matmul(mixPP,UnPPX))
     dUnPH=np.matmul(UnPHX-UnPHEX,np.matmul(mixPH,UnPHX))+\
         np.matmul(UnPHX,np.matmul(mixPH,UnPHX-UnPHEX))
-    
     dUnPHE=-np.matmul(UnPHEX,np.matmul(mixPH,UnPHEX))
     
     dUnPPI=UnF.legndExpand(dUnPP,AC)
@@ -382,6 +380,8 @@ def betaFNL(UnF,propT,AC,nL):
     dUnPH+=dUnPHC
     dUnPHE+=dUnPHEC
 
+    dUnPPSEc=np.zeros(dUnPP.shape,dtype=np.complex_)
+    dUnPHESEc=np.zeros(dUnPP.shape,dtype=np.complex_)
     for i in range(nL-2):
         dUnPPI=UnF.legndExpand(dUnPPC,AC)
         dUnPHI=UnF.legndExpand(dUnPHC,AC)
@@ -398,7 +398,8 @@ def betaFNL(UnF,propT,AC,nL):
         dUnPPc=-np.matmul(np.matmul(UnPPX,gPP),dUnPPL)
         dUnPPL=-np.matmul(np.matmul(dUnPPNX,gPP),UnPPX)
         dUnPPR=-np.matmul(np.matmul(UnPPX,gPP),dUnPPNX)
-        dUnPPC=0*dUnPPc+dUnPPL+dUnPPR
+        dUnPPC=dUnPPc+dUnPPL+dUnPPR
+        dUnPPSEc+=dUnPPc
 
         dUnPHc=np.matmul(np.matmul(UnPHX,gPH),dUnPHL2)+\
             np.matmul(np.matmul(UnPHX-UnPHEX,gPH),dUnPHL)
@@ -407,12 +408,13 @@ def betaFNL(UnF,propT,AC,nL):
         dUnPHL2=np.matmul(np.matmul(dUnPHNX-dUnPHENX,gPH),UnPHX-UnPHEX)
         dUnPHR=np.matmul(np.matmul(UnPHX-UnPHEX,gPH),dUnPHNX)+\
             np.matmul(np.matmul(UnPHX,gPH),dUnPHNX-dUnPHENX)
-        dUnPHC=0*dUnPHc+dUnPHL+dUnPHR
+        dUnPHC=dUnPHc+dUnPHL+dUnPHR
 
         dUnPHEc=-np.matmul(np.matmul(UnPHEX,gPH),dUnPHEL)
         dUnPHEL=-np.matmul(np.matmul(dUnPHENX,gPH),UnPHEX)
         dUnPHER=-np.matmul(np.matmul(UnPHEX,gPH),dUnPHENX)
-        dUnPHEC=0*dUnPHEc+dUnPHEL+dUnPHER
+        dUnPHEC=dUnPHEc+dUnPHEL+dUnPHER
+        dUnPHESEc+=dUnPHEc
 
         dUnPP+=dUnPPC
         dUnPH+=dUnPHC
@@ -431,7 +433,8 @@ def betaFNL(UnF,propT,AC,nL):
     dUnPP+=UnPPs
     dUnPH+=UnPHs
     dUnPHE+=UnPHEs
-
+    #dSE+=calcSEc((dUnPPSEc,dUnPHESEc),UnF,propT,AC)
+    
     return -AC*dSE, -AC*dUnPP, -AC*dUnPH, -AC*dUnPHE
 
 def calcSE(UnF,propT,AC):

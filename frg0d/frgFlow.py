@@ -167,7 +167,6 @@ class fRG0D:
             auxF.printBar(np.round(self.step,2),self.l/lMax)
 
             absERR=0.01
-            
             stepN=self.step*(absERR/eRR)**0.2
             if stepN>=self.step:
                 self.l+=self.step
@@ -179,6 +178,9 @@ class fRG0D:
                 
             else:
                 self.step=0.9*stepN
+        from matplotlib import pyplot as plt
+        plt.plot(self.propG.wF,sE.imag,'o-')
+        plt.show()
             
         return self.UnF.UnPP,self.UnF.UnPH,self.UnF.UnPHE,self.propG.sE
     

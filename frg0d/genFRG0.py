@@ -5,7 +5,22 @@ from tempfile import TemporaryFile
 import numpy as np
 
 def frgRun(args):
+    wF=(np.pi/args.beTa[0])*(2*np.arange(10000)+1)
+    wF=np.append(-wF[:0:-1],wF)
+    
+    kX=np.linspace(-np.pi,np.pi,1000)
+    gLoc=np.zeros(len(wF),dtype=np.complex_)
+    for i in range(len(wF)):
+        gKint=1.0/(1j*wF[i]+2*np.cos(kX))
+        gLoc[i]=(1.0/(2*np.pi))*np.trapz(gKint,kX)
+       
+    hFI=1j*wF-1/gLoc
     def hF(wM):
+        hFr=np.interp(wM,wF,hFI.real)
+        hFi=np.interp(wM,wF,hFI.imag)
+        return hFr+1j*hFi
+
+    def hF2(wM):
         return 1j*(np.sign(wM))
 
     def uF(wPP,wPH,wPHE):
@@ -40,12 +55,12 @@ def frgRun(args):
 
     dF=np.interp(wQ,fRGrun.UnF.wB,c.real)
     dF=np.append(dF[:0:-1],dF)
-    print fRGrun.UnF.wB
+
     print 'dFac',(1.0/args.beTa[0])*np.sum(dF)
 
     print cX,cXexact,cS,cSexact
-    print 1-sEd,(np.pi/2.0)*(cXexact+cSexact)
-    print gamma0,(np.pi**2/2.0)*(cSexact-cXexact)
+    print 'QuasiP: ',1-sEd,(np.pi/2.0)*(cXexact+cSexact)
+    print 'VertexG: ',gamma0,(np.pi**2/2.0)*(cSexact-cXexact)
     print c[0],s[0],cXexact,cSexact
     filename=''.join(['couplingU',str(int(args.couplingU[1])),'Mu',str(int(args.Mu[1])),'R',args.cutoffR,
                   'SIAMnL',str(args.nLoop),'nf',str(args.nPatches),'NW',str(args.NW),'bT',str(int(args.beTa[1]))])
