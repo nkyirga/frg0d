@@ -5,6 +5,7 @@ class vertexR:
     """
     A class to contain the two particle vertex
 
+    ...
     Attributes
     ----------
     wB : array_like(float, ndim=1)
@@ -50,7 +51,7 @@ class vertexR:
     Methods
     -------
     initializeVertex()
-        Projects intial two particle vertex over the three
+        Projects initial two particle vertex over the three
         channels
 
     projectionW()
@@ -74,6 +75,8 @@ class vertexR:
     """
     def __init__(self,wB,NW,beTa,UnF):
         """
+        Parameters
+        ----------
         wB : array_like(float, ndim=1)
             An array of bosonic frequencies at which the 
             value of the vertex is known

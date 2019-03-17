@@ -2,7 +2,102 @@ import numpy as np
 import auxFunctions as auxF
 
 class scaleProp:
+    """
+    A class for quantities related to the single particle vertex
+
+    ...
+    Attributes
+    ----------
+    g0 : function(wX)
+        The hybridization function of the impurity Hamiltonian
+
+    beTa : float
+        The temperature of the system
+
+    Mu : float
+        The chemical potential of the system
+
+    wF : array_like(float,ndim=1)
+        The positive fermionic Ozaki-matsubara frequencies of the system
+
+    wFX,wFG : array_like(float,ndim=1)
+        The Ozaki-Matsubara frequencies and weights for matsubara sums
+
+    sE : array_like(float, ndim=1)
+        The self-energy of the system of interest.
+
+    gF : function(wF,AC)
+        The full propagator of our system at scale AC
+
+    sF : function(wF,AC)
+        The single scale propagator of our system at scale AC
+
+    Methods
+    -------
+    sEInterp(wQ)
+        The interpolated self-energy at the frequencies wQ
+
+    xBubbles(wQ,dSEwMid,AC,NW)
+        The single scale exchange propagators over NW basis 
+        functions at scale AC
+
+    gBubbles(wQ,AC,NW)
+        The full exchange propagators over the NW basis
+        functions at scale AC
+
+    susBubbles(wQ,NW)
+        The full exchnage propagators for the susceptibility
+        over NW basis functions at scale AC
+
+    _gSoft(wQ,AC)
+        The full propagator suppressed by a soft multiplicative
+        regulator at scale AC         
+
+    _sSoft(wQ,AC)
+        The softly regulated single scale propagator
+
+    _gSharp(wQ,AC)
+        The full propagator suppressed by a sharp multiplicative
+        regulator at scale AC         
+
+    _sSharp(wQ,AC)
+        The sharply regulated single scale propagator
+
+    _gAdditive(wQ,AC)
+        The full propagator suppressed by a soft additive
+        regulator at scale AC
+
+    _sAdditive(wQ,AC)
+        The additively regulated single scale propagator
+
+    _gLitim(wQ,AC)
+        The full propagator suppressed by the additive Litim
+        regulator at scale AC
+
+    _sLitim(wQ,AC)
+        The single scale Litim propagator
+    """
+              
     def __init__(self,maxW,freeG,beTa,Mu,cutoff='litim'):
+        """
+        Parameters
+        ----------
+        maxW: float
+            The maximum frequency for the system of interest
+
+        freeG: function(wX)
+            The hybridization function of the system
+
+        beTa: float
+            The temperature of the sytem
+ 
+        Mu : float
+            The chemical potential of the sytem
+
+        Cutoff: str,optional
+            The choice of regulator for the propagator
+            Default if the Litim regulator
+        """
         wF,wFG=auxF.padeWeights(maxW,beTa)
         
         self.g0=freeG
@@ -46,6 +141,9 @@ class scaleProp:
         return sEQ
     
     def xBubbles(self,wQ,dSEwMid,AC,NW):
+        """Calculates the single scale exchange propagator over
+        the NW basis functions"""
+
         beTa=self.beTa
         wFX=self.wFX
         wFG=self.wFG
@@ -103,6 +201,9 @@ class scaleProp:
 
     
     def gBubbles(self,wQ,AC,NW):
+        """Calculates the exchange propagtor at scale AC over 
+        NW basis functions"""
+
         wFX=self.wFX
         wFG=self.wFG
         beTa=self.beTa
@@ -154,6 +255,9 @@ class scaleProp:
         return gPP,gPH
     
     def susBubbles(self,wQ,NW):
+        """Calculates the exchange propagators for the susceptibility 
+        of the system"""
+
         wFX=self.wFX
         wFG=self.wFG
         beTa=self.beTa

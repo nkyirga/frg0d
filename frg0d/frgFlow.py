@@ -1,11 +1,73 @@
 import copy
-import time
 import numpy as np
 import auxFunctions as auxF
 from vertexF import vertexR
 from propG import scaleProp
 
 class fRG0D:
+    """
+    A class for solving the fRG equations via a standard N order
+    adaptive step Runge-Kutta solver.
+
+    Attributes
+    ----------
+    nPatches : int
+        A number of logarthmically spacedfrequencies we retain 
+        from the full matsubara set
+
+    deltal : float
+        Initial step size for the RK solver
+
+    beTa : float
+        Initial temperature of the system
+
+    maxW : float
+        The maximum frequency of interest
+
+    NT : int
+        The number of basis functions for the vertex
+
+    cutoffR : str
+        The choice of cutoff for the regulator
+  
+    wB : array_like(float, ndim=1)
+        An array of logarthmically spaced matsubara
+        frequecies
+
+    lStart : float,optional
+        Start of the flow (Set to 0)
+
+    Mu : float
+        Chemical potential of the system
+    
+    UnF : vertexR
+        A class to contain the two particle vertex
+
+    propG : scaleProp
+        A class to contain the single particle vertex
+
+    nLoop : int
+        The number of loops in the beta function    
+
+    Methods
+    -------
+    initializeFlow(hybriD,uVertex,nLoop,Mu=0,lStart=0)
+        Initializes the single and two-particle vertex of the 
+        system
+    
+    advanceRK4()
+        A step of size deltal in the Runge-Kutta solver
+
+    susFunctions()
+        Calculates the susceptibilities of the system at 
+        the surrent scale
+    
+    adaptiveRGFlow(lMax):
+        An adaptive step RK solver until RG time is lMax
+
+    advanceRKF():
+        Single Runge-Kutta step               
+    """
     def __init__(self, nPatches, deltal, beTa, maxW, NT,cutoffR):
         self.step=deltal
         self.beTa=beTa
@@ -13,7 +75,7 @@ class fRG0D:
         self.maxW=maxW
         self.cutoffT=cutoffR
         
-        a,self.wB=auxF.freqPoints(beTa,maxW,nPatches)
+        self.wB=auxF.freqPoints(beTa,maxW,nPatches)[1]
         
     def initializeFlow(self,hybriD,uVertex,nLoop,Mu=0,lStart=0):
         self.l=lStart
@@ -178,11 +240,11 @@ class fRG0D:
                 
             else:
                 self.step=0.9*stepN
-        """
+        
         from matplotlib import pyplot as plt
         plt.plot(self.propG.wF,sE.imag,'o-')
         plt.show()
-        """    
+            
         return self.UnF.UnPP,self.UnF.UnPH,self.UnF.UnPHE,self.propG.sE
     
     def advanceRKF(self):
