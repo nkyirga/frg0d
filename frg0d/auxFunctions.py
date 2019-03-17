@@ -5,6 +5,7 @@ from math import factorial
 import sys
 
 def printBar(steP,current):
+    """A status bar for duration of an fRG implementation."""
     width=20
     per=int(current*100)
     curWidth=int(current*width)
@@ -15,7 +16,7 @@ def printBar(steP,current):
     sys.stdout.flush()
     
 def calcScale(xV,yV,cScaleS):
-    
+    """A simple estimate (via Newton's Method) of scale for an algebraic map."""
     diff=cScaleS
     tol=0.001
 
@@ -66,7 +67,7 @@ def calcScale(xV,yV,cScaleS):
         cScaleS=cScale
     return cScale
 def linInterp(xI,yI,xQ):
-
+    """A linear interpolator along 0 dimension of a 3-d array"""
     y1=yI.shape[1]
     y2=yI.shape[2]
 
@@ -77,6 +78,7 @@ def linInterp(xI,yI,xQ):
             yQ[:,i,j]+=1j*np.interp(xQ,xI,yI[:,i,j].imag)
     return yQ
 def linInterp2(xI,yI,xQ):
+    """A vectorized linear interpolator along 0 dimension of a 3-d array"""
     xLQ=len(xQ)
     xL=len(xI)
     yL=yI.size/(len(xI))
@@ -102,6 +104,7 @@ def linInterp2(xI,yI,xQ):
     return np.reshape(yQ,(xLQ,yL1,yL2))
     
 def padeWeights(wMax,beTa):
+    """Okazaki matsubara frequencies and weights for fermionic matsubara sums"""
     tol=0.01
     xV=beTa*wMax*2
     eRR=np.tanh(xV/2.0)
@@ -132,17 +135,20 @@ def padeWeights(wMax,beTa):
 
 
 def hermiteExpansion(wV,j):
+    """Orthogonal Hermite functions."""
     lInJ=np.zeros(j+1)
     lInJ[j]=1
     
     return (1/np.sqrt(np.sqrt(np.pi)*(2**j)*np.math.factorial(j)))*np.exp(-0.5*wV**2)*np.polynomial.hermite.hermval(wV,lInJ)
 def freqExpansion(zV,j):
+    """Orthonormal Legendre functions."""
     lInJ=np.zeros(j+1)
     lInJ[j]=1
     
     return np.sqrt((2*j+1)/2.0)*np.polynomial.legendre.legval(zV,lInJ)
 
 def gaussianInt(xGrid,nG):
+    """Gauss-Legendre points and weights for smooth integrals."""
     lIn=np.zeros(nG+1)
     lIn[nG]=1
 
@@ -162,6 +168,7 @@ def gaussianInt(xGrid,nG):
     return xG,wG
 
 def freqPoints(beTa,wMax,nPoints):
+    """Logarthmic set of fermionic and bosonic matsubara frequencies."""
     nMax=np.floor(0.5*((wMax*beTa/np.pi)-1))
 
     wTF=(np.pi/beTa)*(2*np.arange(0,nMax,1)+1)
@@ -202,67 +209,103 @@ def freqPoints(beTa,wMax,nPoints):
 
     return wF,wB
 def forMap(wV,cScale):
+    """Algebraic map to finite domain."""
     return wV/np.sqrt(wV**2+cScale)
 def backMap(zV,cScale):
+    """Inverse algebraic map to unbounded domain."""
     return zV/np.sqrt(cScale-zV**2)
 
 def aScale(lC,A0):
     return A0*np.exp(-lC)
 
 def litim0(wQ,AC):
+    """Litim Regulator for frequency domain."""
     stepR=0.5*(np.sign(AC-np.abs(wQ))+1)
     return 1j*(np.sign(wQ)*AC-wQ)*stepR
 
 def dLitim0(wQ,AC):
+    """Scale derivative of Litim regulator."""
     stepR=0.5*(np.sign(AC-np.abs(wQ))+1)
     return 1j*np.sign(wQ)*stepR
 
 def additiveR0(wQ,AC):
+    """Smooth additive regualtor for frequency domain."""
     return 1j*(np.sign(wQ)*np.sqrt(wQ**2+AC**2)-wQ)
 
 def dAdditiveR0(wQ,AC):
+    """Scale derivative of additive regulator."""
     return (1j*np.sign(wQ)*AC)/np.sqrt(wQ**2+AC**2)
 
 def sharpR(wQ,AC):
+    """A smoothed hard regulator for frequency domain."""
     kSm=1
     return (1-np.exp(-(np.abs(wQ)/AC)**kSm))
 
 def dSharpR(wQ,AC):
+    """Scale derivative of sharp regulator."""
     kSm=1
     return ((kSm*np.abs(wQ)**kSm)/AC**(kSm+1))*np.exp(-(np.abs(wQ)/AC)**kSm)
 
 def softR(wQ,AC):
+    """A soft regulator for frequency domain."""
     return (wQ**2+AC**2)/(wQ**2)
 
 def dSoftR(wQ,AC):
+    """Scale derivative of smooth regulator."""
     return 2*AC/(wQ**2)
 
-def betaF(UnF,propT,AC,nL):
-    UnF.UnPPI=UnF.legndExpand(UnF.UnPP,AC)
-    UnF.UnPHI=UnF.legndExpand(UnF.UnPH,AC)
-    UnF.UnPHEI=UnF.legndExpand(UnF.UnPHE,AC)
+def projectedVertex(UnX,UnF,AC,flag=None):
+    """Calculates projected contributions to each channel."""
 
-    uPPtoPH,uPPtoPHE=UnF.projectChannel(UnF.UnPPI,AC,'PP')
-    uPHtoPP,uPHtoPHE=UnF.projectChannel(UnF.UnPHI,AC,'PH')
-    uPHEtoPP,uPHEtoPH=UnF.projectChannel(UnF.UnPHEI,AC,'PHE')
+    #Expand vertices in a basis set
+    #for projection across channels
+    UnPPI=UnF.legndExpand(UnX[0],AC)
+    UnPHI=UnF.legndExpand(UnX[1],AC)
+    UnPHEI=UnF.legndExpand(UnX[2],AC)
+
+    if flag is 'b':
+        UnF.UnPPI=UnPPI
+        UnF.UnPHI=UnPHI
+        UnF.UnPHEI=UnPHEI
+
+    #Projection from each channel
+    #to the other channels
+    uPPtoPH,uPPtoPHE=UnF.projectChannel(UnPPI,AC,'PP')
+    uPHtoPP,uPHtoPHE=UnF.projectChannel(UnPHI,AC,'PH')
+    uPHEtoPP,uPHEtoPH=UnF.projectChannel(UnPHEI,AC,'PHE')
+
+    uPP=uPHtoPP+uPHEtoPP
+    uPH=uPPtoPH+uPHEtoPH
+    uPHE=uPPtoPHE+uPHtoPHE
+    
+    return uPP,uPH,uPHE
+def basisDerv(UnF,AC):
+    """Additional vertex for a scale dependent basis set"""
+    scaleD=UnF.scaleDerv
+
+    UnPPs=(AC/(AC**2+1))*np.sum(UnF.UnPP[:,:,:,None,None]*scaleD[None,...],axis=(1,2))
+    UnPHs=(AC/(AC**2+1))*np.sum(UnF.UnPH[:,:,:,None,None]*scaleD[None,...],axis=(1,2))
+    UnPHEs=(AC/(AC**2+1))*np.sum(UnF.UnPHE[:,:,:,None,None]*scaleD[None,...],axis=(1,2))
+    
+    return UnPPs,UnPHs,UnPHEs
+def betaF(UnF,propT,AC,nL):
+    """One-loop beta function for decoupled fRG."""
+    
+    #Project every vertex across channels
+    #to construct full vertex
+    UnX=(UnF.UnPP,UnF.UnPH,UnF.UnPHE)
+    uPP,uPH,uPHE=projectedVertex(UnX,UnF,AC,'b')
+
+    UnPPX=UnF.UnPPO+UnF.UnPP+uPP
+    UnPHX=UnF.UnPHO+UnF.UnPH+uPH
+    UnPHEX=UnF.UnPHEO+UnF.UnPHE+uPHE
 
     dSE=calcSE(UnF,propT,AC)
-    mixPP, mixPH=propT.xBubbles(UnF.wB,dSE,AC,UnF.NW)
+    mixPP, mixPH=propT.xBubbles(UnF.wB,dSE,AC,UnF.NW)    
     
-    UnPPX=UnF.UnPPO+UnF.UnPP+uPHtoPP+uPHEtoPP
-    UnPHX=UnF.UnPHO+UnF.UnPH+uPPtoPH+uPHEtoPH
-    UnPHEX=UnF.UnPHEO+UnF.UnPHE+uPPtoPHE+uPHtoPHE
-
-    scaleD=UnF.scaleDerv
-    scaleF=np.tile(scaleD[np.newaxis,:,:,:,:],(len(UnF.wB),1,1,1,1))
-    UnPPs=np.tile(UnF.UnPP[:,:,:,np.newaxis,np.newaxis],(1,1,1,UnF.NW,UnF.NW))
-    UnPHs=np.tile(UnF.UnPH[:,:,:,np.newaxis,np.newaxis],(1,1,1,UnF.NW,UnF.NW))
-    UnPHEs=np.tile(UnF.UnPHE[:,:,:,np.newaxis,np.newaxis],(1,1,1,UnF.NW,UnF.NW))
-
-    UnPPs=(AC/(AC**2+1))*np.sum(UnPPs*scaleF,axis=(1,2))
-    UnPHs=(AC/(AC**2+1))*np.sum(UnPHs*scaleF,axis=(1,2))
-    UnPHEs=(AC/(AC**2+1))*np.sum(UnPHEs*scaleF,axis=(1,2))
-
+    #Contributions from scale dependent basis functions
+    UnPPs,UnPHs,UnPHEs=basisDerv(UnF,AC)
+    
     dUnPP=UnPPs-np.matmul(UnPPX,np.matmul(mixPP,UnPPX))
     dUnPH=UnPHs+np.matmul(UnPHX-UnPHEX,np.matmul(mixPH,UnPHX))+\
         np.matmul(UnPHX,np.matmul(mixPH,UnPHX-UnPHEX))
@@ -271,19 +314,19 @@ def betaF(UnF,propT,AC,nL):
 
     return -AC*dSE, -AC*dUnPP, -AC*dUnPH, -AC*dUnPHE
 def betaF2L(UnF,propT,AC,nL):
-    UnF.UnPPI=UnF.legndExpand(UnF.UnPP,AC)
-    UnF.UnPHI=UnF.legndExpand(UnF.UnPH,AC)
-    UnF.UnPHEI=UnF.legndExpand(UnF.UnPHE,AC)
+    """Two-loop beta function for decoupled fRG."""
+    
+    #Project every vertex across channels
+    #to construct full vertex
+    UnX=(UnF.UnPP,UnF.UnPH,UnF.UnPHE)
+    uPP,uPH,uPHE=projectedVertex(UnX,UnF,AC,'b')
 
-    uPPtoPH,uPPtoPHE=UnF.projectChannel(UnF.UnPPI,AC,'PP')
-    uPHtoPP,uPHtoPHE=UnF.projectChannel(UnF.UnPHI,AC,'PH')
-    uPHEtoPP,uPHEtoPH=UnF.projectChannel(UnF.UnPHEI,AC,'PHE')
+    UnPPX=UnF.UnPPO+UnF.UnPP+uPP
+    UnPHX=UnF.UnPHO+UnF.UnPH+uPH
+    UnPHEX=UnF.UnPHEO+UnF.UnPHE+uPHE
+
 
     gPP, gPH=propT.gBubbles(UnF.wB,AC,UnF.NW)
-    UnPPX=UnF.UnPPO+UnF.UnPP+uPHtoPP+uPHEtoPP
-    UnPHX=UnF.UnPHO+UnF.UnPH+uPPtoPH+uPHEtoPH
-    UnPHEX=UnF.UnPHEO+UnF.UnPHE+uPPtoPHE+uPHtoPHE
-
     dSE=calcSE(UnF,propT,AC)
     mixPP, mixPH=propT.xBubbles(UnF.wB,dSE,AC,UnF.NW) 
     
@@ -292,27 +335,12 @@ def betaF2L(UnF,propT,AC,nL):
         np.matmul(UnPHX,np.matmul(mixPH,UnPHX-UnPHEX))
     dUnPHE=-np.matmul(UnPHEX,np.matmul(mixPH,UnPHEX))
     
-    dUnPPI=UnF.legndExpand(dUnPP,AC)
-    dUnPHI=UnF.legndExpand(dUnPH,AC)
-    dUnPHEI=UnF.legndExpand(dUnPHE,AC)
-
-    uPPtoPH2,uPPtoPHE2=UnF.projectChannel(dUnPPI,AC,'PP')
-    uPHtoPP2,uPHtoPHE2=UnF.projectChannel(dUnPHI,AC,'PH')
-    uPHEtoPP2,uPHEtoPH2=UnF.projectChannel(dUnPHEI,AC,'PHE')
-   
-    dUnPPX=uPHtoPP2+uPHEtoPP2
-    dUnPHX=uPPtoPH2+uPHEtoPH2
-    dUnPHEX=uPPtoPHE2+uPHtoPHE2  
+    #Two-Loop contributions from 
+    #scale derivative of vertex
+    UnX=(dUnPP,dUnPH,dUnPHE)
+    dUnPPX,dUnPHX,dUnPHEX=projectedVertex(UnX,UnF,AC)
     
-    scaleD=UnF.scaleDerv
-    scaleF=np.tile(scaleD[np.newaxis,:,:,:,:],(len(UnF.wB),1,1,1,1,))
-    UnPPs=np.tile(UnF.UnPP[:,:,:,np.newaxis,np.newaxis],(1,1,1,UnF.NW,UnF.NW))
-    UnPHs=np.tile(UnF.UnPH[:,:,:,np.newaxis,np.newaxis],(1,1,1,UnF.NW,UnF.NW))
-    UnPHEs=np.tile(UnF.UnPHE[:,:,:,np.newaxis,np.newaxis],(1,1,1,UnF.NW,UnF.NW))
-
-    UnPPs=(AC/(AC**2+1))*np.sum(UnPPs*scaleF,axis=(1,2))
-    UnPHs=(AC/(AC**2+1))*np.sum(UnPHs*scaleF,axis=(1,2))
-    UnPHEs=(AC/(AC**2+1))*np.sum(UnPHEs*scaleF,axis=(1,2))
+    UnPPs,UnPHs,UnPHEs=basisDerv(UnF,AC)
 
     dUnPP+=UnPPs-np.matmul(np.matmul(dUnPPX,gPP),UnPPX)-\
         np.matmul(UnPPX,np.matmul(gPP,dUnPPX))
@@ -327,39 +355,26 @@ def betaF2L(UnF,propT,AC,nL):
     return -AC*dSE, -AC*dUnPP, -AC*dUnPH, -AC*dUnPHE
 
 def betaFNL(UnF,propT,AC,nL):
-    UnF.UnPPI=UnF.legndExpand(UnF.UnPP,AC)
-    UnF.UnPHI=UnF.legndExpand(UnF.UnPH,AC)
-    UnF.UnPHEI=UnF.legndExpand(UnF.UnPHE,AC)
+    """Multi-Loop beta function for decoupled fRG."""
 
-    uPPtoPH,uPPtoPHE=UnF.projectChannel(UnF.UnPPI,AC,'PP')
-    uPHtoPP,uPHtoPHE=UnF.projectChannel(UnF.UnPHI,AC,'PH')
-    uPHEtoPP,uPHEtoPH=UnF.projectChannel(UnF.UnPHEI,AC,'PHE')
+    UnX=(UnF.UnPP,UnF.UnPH,UnF.UnPHE)
+    uPP,uPH,uPHE=projectedVertex(UnX,UnF,AC,'b')
 
-    #dSE=calcSE(UnF,propT,AC)
-    dSE=np.zeros(len(propT.wF),dtype=np.complex_)
-    mixPP, mixPH=propT.xBubbles(UnF.wB,dSE,AC,UnF.NW)
+    UnPPX=UnF.UnPPO+UnF.UnPP+uPP
+    UnPHX=UnF.UnPHO+UnF.UnPH+uPH
+    UnPHEX=UnF.UnPHEO+UnF.UnPHE+uPHE
+
     gPP, gPH=propT.gBubbles(UnF.wB,AC,UnF.NW)
-  
-    UnPPX=UnF.UnPPO+UnF.UnPP+uPHtoPP+uPHEtoPP
-    UnPHX=UnF.UnPHO+UnF.UnPH+uPPtoPH+uPHEtoPH
-    UnPHEX=UnF.UnPHEO+UnF.UnPHE+uPPtoPHE+uPHtoPHE
+    dSE=calcSE(UnF,propT,AC)
+    mixPP, mixPH=propT.xBubbles(UnF.wB,dSE,AC,UnF.NW)
 
     dUnPP=-np.matmul(UnPPX,np.matmul(mixPP,UnPPX))
     dUnPH=np.matmul(UnPHX-UnPHEX,np.matmul(mixPH,UnPHX))+\
         np.matmul(UnPHX,np.matmul(mixPH,UnPHX-UnPHEX))
     dUnPHE=-np.matmul(UnPHEX,np.matmul(mixPH,UnPHEX))
-    
-    dUnPPI=UnF.legndExpand(dUnPP,AC)
-    dUnPHI=UnF.legndExpand(dUnPH,AC)
-    dUnPHEI=UnF.legndExpand(dUnPHE,AC)
-
-    uPPtoPH2,uPPtoPHE2=UnF.projectChannel(dUnPPI,AC,'PP')
-    uPHtoPP2,uPHtoPHE2=UnF.projectChannel(dUnPHI,AC,'PH')
-    uPHEtoPP2,uPHEtoPH2=UnF.projectChannel(dUnPHEI,AC,'PHE')
-   
-    dUnPP2X=uPHtoPP2+uPHEtoPP2
-    dUnPH2X=uPPtoPH2+uPHEtoPH2
-    dUnPHE2X=uPPtoPHE2+uPHtoPHE2
+     
+    UnX=(dUnPP,dUnPH,dUnPHE)
+    dUnPP2X,dUnPH2X,dUnPHE2X=projectedVertex(UnX,UnF,AC)
     
     dUnPPL=-np.matmul(np.matmul(dUnPP2X,gPP),UnPPX)
     dUnPPR=-np.matmul(UnPPX,np.matmul(gPP,dUnPP2X))
@@ -383,18 +398,9 @@ def betaFNL(UnF,propT,AC,nL):
     dUnPPSEc=np.zeros(dUnPP.shape,dtype=np.complex_)
     dUnPHESEc=np.zeros(dUnPP.shape,dtype=np.complex_)
     for i in range(nL-2):
-        dUnPPI=UnF.legndExpand(dUnPPC,AC)
-        dUnPHI=UnF.legndExpand(dUnPHC,AC)
-        dUnPHEI=UnF.legndExpand(dUnPHEC,AC)
-
-        uPPtoPHN,uPPtoPHEN=UnF.projectChannel(dUnPPI,AC,'PP')
-        uPHtoPPN,uPHtoPHEN=UnF.projectChannel(dUnPHI,AC,'PH')
-        uPHEtoPPN,uPHEtoPHN=UnF.projectChannel(dUnPHEI,AC,'PHE')
-      
-        dUnPPNX=uPHtoPPN+uPHEtoPPN
-        dUnPHNX=uPPtoPHN+uPHEtoPHN
-        dUnPHENX=uPPtoPHEN+uPHtoPHEN
-    
+        UnX=(dUnPPX,dUnPHX,dUnPHEC)
+        dUnPPNX,dUnPHNX,dUnPHENX==projectedVertex(UnX,UnF,AC)
+ 
         dUnPPc=-np.matmul(np.matmul(UnPPX,gPP),dUnPPL)
         dUnPPL=-np.matmul(np.matmul(dUnPPNX,gPP),UnPPX)
         dUnPPR=-np.matmul(np.matmul(UnPPX,gPP),dUnPPNX)
@@ -420,24 +426,16 @@ def betaFNL(UnF,propT,AC,nL):
         dUnPH+=dUnPHC
         dUnPHE+=dUnPHEC
 
-    scaleD=UnF.scaleDerv
-    scaleF=np.tile(scaleD[np.newaxis,:,:,:,:],(len(UnF.wB),1,1,1,1,))
-    UnPPs=np.tile(UnF.UnPP[:,:,:,np.newaxis,np.newaxis],(1,1,1,UnF.NW,UnF.NW))
-    UnPHs=np.tile(UnF.UnPH[:,:,:,np.newaxis,np.newaxis],(1,1,1,UnF.NW,UnF.NW))
-    UnPHEs=np.tile(UnF.UnPHE[:,:,:,np.newaxis,np.newaxis],(1,1,1,UnF.NW,UnF.NW))
-
-    UnPPs=(AC/(AC**2+1))*np.sum(UnPPs*scaleF,axis=(1,2))
-    UnPHs=(AC/(AC**2+1))*np.sum(UnPHs*scaleF,axis=(1,2))
-    UnPHEs=(AC/(AC**2+1))*np.sum(UnPHEs*scaleF,axis=(1,2))
+    UnPPs,UnPHs,UnPHEs=basisDerv(UnF,AC)
 
     dUnPP+=UnPPs
     dUnPH+=UnPHs
     dUnPHE+=UnPHEs
-    #dSE+=calcSEc((dUnPPSEc,dUnPHESEc),UnF,propT,AC)
     
     return -AC*dSE, -AC*dUnPP, -AC*dUnPH, -AC*dUnPHE
 
 def calcSE(UnF,propT,AC):
+    """Evaluates the scale derivative of the self energy."""
     wF=propT.wF
     wFX=propT.wFX
     wFG=propT.wFG

@@ -178,10 +178,11 @@ class fRG0D:
                 
             else:
                 self.step=0.9*stepN
+        """
         from matplotlib import pyplot as plt
         plt.plot(self.propG.wF,sE.imag,'o-')
         plt.show()
-            
+        """    
         return self.UnF.UnPP,self.UnF.UnPH,self.UnF.UnPHE,self.propG.sE
     
     def advanceRKF(self):
