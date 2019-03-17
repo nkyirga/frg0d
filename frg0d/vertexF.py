@@ -2,7 +2,92 @@ import numpy as np
 import auxFunctions as auxF
 
 class vertexR:
+    """
+    A class to contain the two particle vertex
+
+    Attributes
+    ----------
+    wB : array_like(float, ndim=1)
+        An array of bosonic frequencies at which the 
+        value of the vertex is known
+
+    beTa : float
+        Inverse temperature of the system
+
+    NLmax : int
+        Max number of basis functions used to expand
+        the vertices in each channel
+        
+    NW : int
+        Current number of basis functions used to 
+        approximate the vertex
+
+    uF : function(wPP,wPH,wPHE)
+        Initial two particle vertex
+
+    UnPP, UnPPO : array_like(complex, ndim=3)
+        Intial and generated particle-particle components 
+        of the vertex
+        
+    UnPH, UnPHO : array_like(complex, ndim=3)
+        Particle-particle component of the vertex
+
+    UnPHE : array_like(complex, ndim=3)
+        Particle-particle component of the vertex
+
+    zFX,zFG : array_like(float, ndim=1)
+        Gauss-Legendre points and weights for integration 
+        over Legendre polynomials
+
+    scaleDerv : array_like(float, ndim=4)
+        Projection of the derivative of scale dependent
+        basis functions
+   
+    wTransXtoY : arraylike(float, nidm=5)
+        Six internal variables for projecting between the 
+        the three channels of the vertex
+
+    Methods
+    -------
+    initializeVertex()
+        Projects intial two particle vertex over the three
+        channels
+
+    projectionW()
+        One shot calculation of projection arrays between the
+        various channels. Calculates wTransXtoY for run. 
+ 
+    legndExpand(UnX,AC)
+        Expands the bosonic frequency dependence of the vertex 
+        at scale AC via NLmax basis functions
+
+    uEvaluate(wPP,wPH,wPHE,AC)
+        Evaluates the full vertex at scale AC at the given 
+        frequecies
+
+    _expandChannel(wS,wSX,wSY,AC,chnL)
+        Fully expands a channel of the vertex at scale AC 
+
+    projectChannel(UnL,AC,chnL):
+        Projects a channel at scale AC into the other two 
+        channels
+    """
     def __init__(self,wB,NW,beTa,UnF):
+        """
+        wB : array_like(float, ndim=1)
+            An array of bosonic frequencies at which the 
+            value of the vertex is known
+
+        NW : int
+            Current number of basis functions
+        beTa : float
+            Inverse temperature of the system
+
+        UnF : function(wPP,wPH,wPHE)
+            Initial two particle vertex
+        
+        """
+
         self.wB=wB
         self.beTa=beTa
         self.NLmax=20
@@ -27,6 +112,8 @@ class vertexR:
         self.projectionW()        
         
     def initializeVertex(self):
+        """Calculates the intial vertex in the three channels"""
+
         wB,NW,beTa=self.wB,self.NW,self.beTa
         NLmax=self.NLmax
         zFX,zFG=auxF.gaussianInt([-1,1],30)
@@ -69,6 +156,9 @@ class vertexR:
         return UnPPO,UnPHO,UnPHEO       
 
     def projectionW(self):
+        """Calculates the arrays for projection between the channels at the 
+        start of the flow"""
+
         NW=self.NW
         NLmax=self.NLmax
         wB=self.wB
@@ -171,6 +261,7 @@ class vertexR:
         self.wTransPHtoPHE=wTransPHtoPHE
 
     def legndExpand(self,UnX,AC):
+        """Expands the frequency dependence of UnX in terms of basis set""" 
         wB=self.wB
         beTa=self.beTa
         NW=self.NW
@@ -192,6 +283,7 @@ class vertexR:
 
         return UnL
     def uEvaluate(self,wPP,wPH,wPHE,AC):
+        """Evaluates the vertex at the given frequency and scale"""
         uShape=wPP.shape
 
         wPP=np.reshape(wPP,wPP.size)
@@ -277,6 +369,8 @@ class vertexR:
         return np.reshape(UnE,uShape)
 
     def projectChannel(self,UnL,AC,chnL):
+        """Projects the vertex UnL in the channel chnL into 
+        the other channels"""
         if chnL is 'PP':
            wTrans1=self.wTransPPtoPH
            wTrans2=self.wTransPPtoPHE
